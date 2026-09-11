@@ -1,0 +1,45 @@
+* { box-sizing: border-box; font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
+body {
+  background: #0f172a;
+  color: #e2e8f0;
+  margin: 0;
+  padding: 0;
+  direction: rtl;
+}
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 24px;
+}
+.card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.3);
+}
+h1, h2 { color: #f8fafc; }
+input, textarea, select, button {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+button {
+  background: #6366f1;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background .2s;
+}
+button:hover { background: #4f46e5; }
+table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+th, td { border: 1px solid #334155; padding: 8px; text-align: right; }
+th { background: #0f172a; }
+.flash { background: #7c2d12; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; }
+.topbar a { color: #a5b4fc; text-decoration: none; }
+pre { white-space: pre-wrap; background: #0f172a; padding: 12px; border-radius: 8px; }

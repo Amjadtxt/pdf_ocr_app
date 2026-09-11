@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>OCR + Dataset Builder</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1>مرحباً {{ current_user.username }}</h1>
+      <a href="{{ url_for('logout') }}">تسجيل خروج</a>
+    </div>
+
+    <!-- PDF Upload / OCR -->
+    <div class="card">
+      <h2>1) رفع PDF ممسوح ضوئياً واستخراج النص</h2>
+      <input type="file" id="pdfFile" accept="application/pdf">
+      <label>لغة الـ OCR:
+        <select id="ocrLang">
+          <option value="ara+eng" selected>عربي + إنجليزي</option>
+          <option value="eng">إنجليزي فقط</option>
+          <option value="ara">عربي فقط</option>
+        </select>
+      </label>
+      <button onclick="runOcr()">استخرج النص</button>
+      <div id="ocrStatus"></div>
+      <div id="ocrResult"></div>
+    </div>
+
+    <!-- Word dataset builder -->
+    <div class="card">
+      <h2>2) إضافة كلمة للـ Dataset (ترجمة + مرادف تلقائي)</h2>
+      <input type="text" id="wordInput" placeholder="اكتب كلمة (عربي أو إنجليزي)">
+      <button onclick="addWord()">أضف للـ Dataset</button>
+      <div id="wordStatus"></div>
+    </div>
+
+    <!-- Dataset table -->
+    <div class="card">
+      <h2>3) الـ Dataset</h2>
+      <button onclick="window.location.href='/api/words/export'">تصدير CSV</button>
+      <table>
+        <thead>
+          <tr><th>Word</th><th>Meaning</th><th>Synonym</th><th>Language</th><th></th></tr>
+        </thead>
+        <tbody id="wordsTable">
+          {% for e in entries %}
+          <tr id="row-{{ e.id }}">
+            <td>{{ e.word }}</td>
+            <td>{{ e.meaning }}</td>
+            <td>{{ e.synonym }}</td>
+            <td>{{ e.language }}</td>
+            <td><button onclick="deleteWord({{ e.id }})">حذف</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    async function runOcr() {
+      const fileInput = document.getElementById('pdfFile');
+      const lang = document.getElementById('ocrLang').value;
+      const statusEl = document.getElementById('ocrStatus');
+      const resultEl = document.getElementById('ocrResult');
+      resultEl.innerHTML = '';
+
+      if (!fileInput.files.length) {
+        statusEl.textContent = 'اختر ملف PDF أولاً';
+        return;
+      }
+
+      statusEl.textContent = 'جاري تحليل الملف... قد يستغرق وقتاً حسب عدد الصفحات';
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const resp = await fetch(`/api/ocr?lang=${lang}`, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          statusEl.textContent = 'خطأ: ' + (data.error || 'غير معروف');
+          return;
+        }
+        statusEl.textContent = `تم استخراج ${data.page_count} صفحة`;
+        data.pages.forEach((text, i) => {
+          const pre = document.createElement('pre');
+          pre.textContent = `--- صفحة ${i + 1} ---\n` + text;
+          resultEl.appendChild(pre);
+        });
+      } catch (err) {
+        statusEl.textContent = 'حدث خطأ في الاتصال: ' + err;
+      }
+    }
+
+    async function addWord() {
+      const wordInput = document.getElementById('wordInput');
+      const statusEl = document.getElementById('wordStatus');
+      const word = wordInput.value.trim();
+      if (!word) return;
+
+      statusEl.textContent = 'جاري الترجمة...';
+      try {
+        const resp = await fetch('/api/words', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ word }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          statusEl.textContent = 'خطأ: ' + (data.error || 'غير معروف');
+          return;
+        }
+        statusEl.textContent = 'تمت الإضافة';
+        wordInput.value = '';
+        const tbody = document.getElementById('wordsTable');
+        const tr = document.createElement('tr');
+        tr.id = 'row-' + data.id;
+        tr.innerHTML = `<td>${data.word}</td><td>${data.meaning}</td><td>${data.synonym}</td><td>${data.language}</td>
+          <td><button onclick="deleteWord(${data.id})">حذف</button></td>`;
+        tbody.prepend(tr);
+      } catch (err) {
+        statusEl.textContent = 'حدث خطأ: ' + err;
+      }
+    }
+
+    async function deleteWord(id) {
+      await fetch(`/api/words/${id}`, { method: 'DELETE' });
+      const row = document.getElementById('row-' + id);
+      if (row) row.remove();
+    }
+  </script>
+</body>
+</html>
